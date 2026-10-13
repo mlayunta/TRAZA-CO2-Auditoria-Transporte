@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRAZA//CO2 - Optimizador de Rutas de Transporte Sostenible</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#132a22">
+    <!-- Chart.js para las gráficas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #132a22;
+            --primary-light: #1f4237;
+            --accent-teal: #2a9d8f;
+            --accent-coral: #e76f51;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-main: #2b2d42;
+            --text-muted: #6c757d;
+            --border-color: #d1d5db;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 750px;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+            margin: auto;
+            border-top: 6px solid var(--primary);
+        }
+
+        /* Brand & Author Header */
+        .brand-header {
+            background-color: var(--primary);
+            color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .brand-author {
+            font-family: 'Georgia', serif;
+            font-style: italic;
+            font-size: 1.05em;
+            color: #e2e8f0;
+            margin-bottom: 6px;
+        }
+        .brand-logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 8px;
+        }
+        .logo-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            height: 28px;
+        }
+        .logo-bar {
+            width: 5px;
+            background-color: var(--accent-teal);
+            border-radius: 2px;
+        }
+        .logo-bar:nth-child(1) { height: 16px; }
+        .logo-bar:nth-child(2) { height: 24px; }
+        .logo-bar:nth-child(3) { height: 28px; background-color: var(--accent-coral); }
+
+        .brand-title {
+            font-size: 1.5em;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: #ffffff;
+        }
+        .brand-title span { color: var(--accent-teal); }
+        .brand-subtitle {
+            font-size: 0.7em;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #a3cef1;
+            margin-top: 2px;
+        }
+
+        /* Navigation Tabs */
+        .tabs-nav {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 5px;
+            overflow-x: auto;
+        }
+        .tab-btn {
+            background: #e5e7eb;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 6px 6px 0 0;
+            font-weight: 600;
+            font-size: 0.85em;
+            color: #4b5563;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Form elements */
+        label {
+            font-weight: 600;
+            font-size: 0.85em;
+            color: #374151;
+            display: block;
+            margin-top: 10px;
+        }
+        input, select, textarea, button {
+            width: 100%;
+            padding: 9px 12px;
+            margin: 5px 0 10px 0;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 0.95em;
+            font-family: inherit;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent-teal);
+            box-shadow: 0 0 0 3px rgba(42, 157, 143, 0.15);
+        }
+        button {
+            background-color: var(--accent-teal);
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #21867a; }
+        .btn-coral {
+            background-color: var(--accent-coral);
+        }
+        .btn-coral:hover { background-color: #d65f40; }
+        .btn-pdf {
+            background-color: #1d4ed8;
+            margin-top: 15px;
+        }
+        .btn-pdf:hover { background-color: #1e40af; }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 0.9em;
+        }
+        th, td {
+            border: 1px solid #e5e7eb;
+            padding: 8px 10px;
+            text-align: center;
+        }
+        th { background-color: #f9fafb; color: var(--primary); font-weight: 600; }
+
+        /* Results & Metrics */
+        #resultado {
+            margin-top: 20px;
+            background: #f0fdf4;
+            padding: 18px;
+            border-radius: 8px;
+            border-left: 5px solid #16a34a;
+            display: none;
+        }
+        #resultado h3 { margin-top: 0; color: var(--primary); font-size: 1.1em; }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 12px 0;
+        }
+        .metric-card {
+            background: #ffffff;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid #bbf7d0;
+        }
+        .metric-card-title {
+            font-size: 0.7em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+        .metric-card-value {
+            font-size: 1em;
+            color: var(--primary);
+            font-weight: bold;
+        }
+        .metric-full {
+            grid-column: span 2;
+        }
+        .eco-tip {
+            background: #f1f8f5;
+            border-left: 4px solid var(--accent-teal);
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: var(--primary);
+            margin-top: 10px;
+        }
+
+        .section-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        @media(min-width: 600px) {
+            .charts-container { grid-template-columns: 1fr 1fr; }
+        }
+        .chart-box {
+            background: #ffffff;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            position: relative;
+            height: 220px;
+        }
+
+        /* Estilos de impresión para PDF */
+        @media print {
+            body { background-color: #ffffff; padding: 0; }
+            .container { box-shadow: none; border: none; max-width: 100%; padding: 0; }
+            .tabs-nav, form, #form-destino, .btn-coral, .btn-pdf, .tab-content:not(#tab-planificacion) {
+                display: none !important;
+            }
+            #tab-planificacion { display: block !important; }
+            #resultado { display: block !important; border: 1px solid #16a34a; break-inside: avoid; }
+            .chart-box { break-inside: avoid; height: 200px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Cabecera TRAZA//CO2 y Autoría -->
+        <div class="brand-header">
+            <div class="brand-author">Miguel Ángel Layunta López</div>
+            <div class="brand-logo-container">
+                <div class="logo-bars">
+                    <div class="logo-bar"></div>
+                    <div class="logo-bar"></div>
+                    <div class="logo-bar"></div>
+                </div>
+                <div>
+                    <div class="brand-title">TRAZA<span>//CO₂</span></div>
+                    <div class="brand-subtitle">Optimizador de Rutas de Transporte Sostenible</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestañas de Navegación -->
+        <div class="tabs-nav">
+            <button class="tab-btn active" onclick="switchTab('planificacion')">1. Planificación</button>
+            <button class="tab-btn" onclick="switchTab('conductor')">2. Conductor & Incidencias</button>
+            <button class="tab-btn" onclick="switchTab('empresa')">3. Empresa & Flota</button>
+            <button class="tab-btn" onclick="switchTab('temperaturas')">4. Guía Térmica</button>
+        </div>
+
+        <!-- PESTAÑA 1: PLANIFICACIÓN -->
+        <div id="tab-planificacion" class="tab-content active">
+            <h3 style="margin-top:0; color:var(--primary); font-size:1em;">Configuración de Origen, Flota y Destinos</h3>
+            
+            <!-- Datos de Flota y Conductor -->
+            <div class="section-box">
+                <label style="margin-top:0; color:var(--primary);"><strong>🪪 Identificación de Flota y Personal:</strong></label>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label>Nombre del Conductor:</label>
+                        <input type="text" id="input_conductor" placeholder="Ej: Juan Pérez" value="Juan Pérez">
+                    </div>
+                    <div style="flex: 1; min-width: 130px;">
+                        <label>Matrícula Tractora:</label>
+                        <input type="text" id="input_tractora" placeholder="Ej: 4521-GHY" value="4521-GHY">
+                    </div>
+                    <div style="flex: 1; min-width: 130px;">
+                        <label>Matrícula Remolque:</label>
+                        <input type="text" id="input_remolque" placeholder="Ej: R-8892-B" value="R-8892-B">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Punto de Origen -->
+            <div class="section-box">
+                <label style="margin-top:0; color:var(--primary);"><strong>📍 Punto de Origen (Base Central):</strong></label>
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex:2;">
+                        <label>Nombre Origen:</label>
+                        <input type="text" id="origen_nombre" value="Base Central" required>
+                    </div>
+                    <div style="flex:1;">
+                        <label>X (km):</label>
+                        <input type="number" step="any" id="origen_x" value="0" required>
+                    </div>
+                    <div style="flex:1;">
+                        <label>Y (km):</label>
+                        <input type="number" step="any" id="origen_y" value="0" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Destinos -->
+            <form id="form-destino">
+                <label style="color:var(--primary);"><strong>📦 Añadir Destino de Entrega:</strong></label>
+                <label>
+                    Nombre del Destino / Cliente:
+                    <input type="text" id="nombre" required placeholder="Ej: Supermercado Centro">
+                </label>
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex:1;">
+                        <label>Coordenada X (km):</label>
+                        <input type="number" step="any" id="coord_x" required placeholder="Ej: 12">
+                    </div>
+                    <div style="flex:1;">
+                        <label>Coordenada Y (km):</label>
+                        <input type="number" step="any" id="coord_y" required placeholder="Ej: 18">
+                    </div>
+                </div>
+                <button type="submit" class="btn-coral">+ Añadir Destino a la Ruta</button>
+            </form>
+
+            <table id="tabla-destinos">
+                <thead>
+                    <tr>
+                        <th>Destino</th>
+                        <th>X (km)</th>
+                        <th>Y (km)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="3" style="color:var(--text-muted);">Sin destinos añadidos</td></tr>
+                </tbody>
+            </table>
+
+            <div style="margin-top: 15px;">
+                <label>
+                    Tipo de Vehículo / Tracción:
+                    <select id="tipo_vehiculo" required>
+                        <option value="electrico">Eléctrico Puro (0 g CO₂/km)</option>
+                        <option value="hibrido">Híbrido (80 g CO₂/km)</option>
+                        <option value="diesel" selected>Diésel (130 g CO₂/km)</option>
+                        <option value="gasolina">Gasolina (150 g CO₂/km)</option>
+                    </select>
+                </label>
+
+                <label>
+                    Modo de Servicio:
+                    <select id="tipo_servicio" onchange="toggleRefrigeracion()">
+                        <option value="seco">Transporte Seco / Carga General</option>
+                        <option value="refrigerado">Transporte Refrigerado / Frigorífico (+25% consumo)</option>
+                    </select>
+                </label>
+
+                <div id="panel-refrigeracion" class="refrig-box" style="display:none; background: #f8fafc; border: 1px dashed #cbd5e1; padding: 10px; border-radius: 6px; margin-top: 10px;">
+                    <label style="margin-top:0;">
+                        Rango Térmico de la Mercancía:
+                        <select id="rango_termico">
+                            <option value="fresco">Refrigerado Fresco (0°C a +4°C)</option>
+                            <option value="congelado">Congelado / Ultracongelado (≤ -18°C)</option>
+                            <option value="fruta">Frutas y Verduras (+4°C a +12°C)</option>
+                        </select>
+                    </label>
+                </div>
+
+                <button type="button" id="btn-calcular" style="margin-top: 12px;">Calcular Ruta Óptima y Auditoría CO₂</button>
+            </div>
+
+            <!-- INFORME DE RESULTADOS Y AUDITORÍA -->
+            <div id="resultado">
+                <h3>Informe de Trazabilidad Sostenible y Auditoría de CO₂</h3>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-card-title">📍 Conductor / Flota</div>
+                        <div class="metric-card-value" id="res-chofer-info" style="font-size:0.85em;">-</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-card-title">🛣️ Distancia Total Óptima</div>
+                        <div class="metric-card-value" id="res-km">0.00 km</div>
+                    </div>
+                    <div class="metric-card metric-full">
+                        <div class="metric-card-title">Secuencia Óptima Multi-Parada</div>
+                        <div class="metric-card-value" id="res-secuencia" style="font-size:0.9em; font-weight:normal;">-</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-card-title">⚡ Consumo Estimado</div>
+                        <div class="metric-card-value" id="res-consumo">-</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-card-title">🌍 Emisiones Netas (CO₂)</div>
+                        <div class="metric-card-value" id="res-emisiones">-</div>
+                    </div>
+                </div>
+                <div style="color: #16a34a; font-weight: bold; font-size: 0.9em; margin-top: 5px;" id="res-ahorro"></div>
+                <div class="eco-tip" id="res-velocidad">
+                    <strong>🍃 Conducción Eficiente:</strong> Velocidad aconsejada 75-85 km/h.
+                </div>
+
+                <!-- SECCIÓN DE OBSERVACIONES DEL CONDUCTOR -->
+                <div class="metric-card metric-full" style="margin-top: 12px; background: #fffbeb; border-color: #fde68a;">
+                    <div class="metric-card-title" style="color: #b45309;">⚠️ Observaciones e Incidencias en Ruta</div>
+                    <div class="metric-card-value" id="res-incidencias-texto" style="font-size: 0.9em; font-weight: normal; color: #78350f;">Sin incidencias reportadas.</div>
+                </div>
+
+                <!-- GRÁFICAS DE ANÁLISIS Y AUDITORÍA -->
+                <div class="charts-container">
+                    <div class="chart-box">
+                        <canvas id="graficaEficiencia"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <canvas id="graficaDesviacion"></canvas>
+                    </div>
+                </div>
+
+                <button type="button" class="btn-pdf" onclick="window.print()">📥 Exportar Informe y Gráficas a PDF</button>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 2: CONDUCTOR -->
+        <div id="tab-conductor" class="tab-content">
+            <h3 style="margin-top:0; color:var(--primary); font-size:1em;">Panel de Asistencia en Cabina y Registro de Incidencias</h3>
+            <p style="font-size:0.9em; color:#4b5563;">Área de trabajo del conductor para eco-conducción y reporte directo de incidencias en ruta.</p>
+            
+            <div class="eco-tip" style="margin-top: 15px;">
+                <strong>📋 Checklist de Salida:</strong>
+                <ul style="margin: 5px 0 0 20px; padding:0; font-size:0.9em;">
+                    <li>Verificar temperatura de consigna en equipo frigorífico antes de arrancar.</li>
+                    <li>Comprobar presión de neumáticos (reduce un 4% el consumo).</li>
+                    <li>Planificar anticipadamente las frenadas para maximizar la inercia.</li>
+                </ul>
+            </div>
+
+            <div class="section-box" style="margin-top: 15px;">
+                <label style="margin-top:0; color:var(--primary);"><strong>⚠️ Bitácora de Incidencias, Averías y Observaciones:</strong></label>
+                <textarea id="input_incidencias" rows="4" placeholder="Anote aquí cualquier incidencia en ruta, retrasos en muelle, alarmas de temperatura o anomalías mecánicas..."></textarea>
+                <button type="button" class="btn-coral" onclick="guardarIncidencias()" style="margin-top: 5px;">Guardar Observaciones en el Informe</button>
+                <div id="aviso-guardado" style="font-size: 0.85em; color: #16a34a; margin-top: 5px; display: none;">✔ Observaciones guardadas correctamente para el informe.</div>
+            </div>
+
+            <div class="metric-card" style="margin-top: 15px;">
+                <div class="metric-card-title">Velocidad Crucero Recomendada</div>
+                <div class="metric-card-value" style="color:var(--accent-teal); font-size: 1.1em;">75 - 85 km/h (Vías Interurbanas)</div>
+            </div>
+        </div>
+
+        <!-- PESTAÑA 3: EMPRESA -->
+        <div id="tab-empresa" class="tab-content">
+            <h3 style="margin-top:0; color:var(--primary); font-size:1em;">Control Logístico y KPIs de Sostenibilidad</h3>
+            <p style="font-size:0.9em; color:#4b5563;">Resumen de cumplimiento corporativo y métricas ESG orientadas a la gerencia de transporte.</p>
+            
+            <div class="metrics-grid" style="margin-top: 15px;">
+                <div class="metric-card">
+                    <div class="metric-card-title">Estándar Logística</div>
+                    <div class="metric-card-value">Logística 5.0 ESG</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-card-title">Factor Ineficiencia Base</div>
+                    <div class="metric-card-value">+30% (Rutas Manuales)</div>
+                </div>
+            </div>
+
+            <div class="eco-tip">
+                <strong>💡 Ventaja Competitiva:</strong> La trazabilidad certificada de emisiones de CO₂ permite cumplir con las normativas de huella de carbono y aporta valor diferencial ante clientes corporativos exigentes.
+            </div>
+        </div>
+
+        <!-- PESTAÑA 4: GUÍA TÉRMICA -->
+        <div id="tab-temperaturas" class="tab-content">
+            <h3 style="margin-top:0; color:var(--primary); font-size:1em;">Tabla de Referencia Térmica (Alimentación)</h3>
+            <p style="font-size:0.85em; color:#4b5563;">Rangos obligatorios de transporte para garantizar la seguridad alimentaria y evitar mermas.</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Categoría</th>
+                        <th>Régimen</th>
+                        <th>Temperatura</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Carnes Frescas / Aves</td>
+                        <td>Refrigerado</td>
+                        <td>0°C a +2°C</td>
+                    </tr>
+                    <tr>
+                        <td>Pescado / Mariscos</td>
+                        <td>Hielo Fundente</td>
+                        <td>-1°C a +2°C</td>
+                    </tr>
+                    <tr>
+                        <td>Lácteos y Derivados</td>
+                        <td>Refrigerado</td>
+                        <td>+2°C a +4°C</td>
+                    </tr>
+                    <tr>
+                        <td>Frutas y Verduras</td>
+                        <td>Climatizado</td>
+                        <td>+4°C a +12°C</td>
+                    </tr>
+                    <tr>
+                        <td>Alimentos Congelados</td>
+                        <td>Congelación</td>
+                        <td>≤ -18°C</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Registro de Service Worker seguro (solo si se ejecuta en http/https para evitar errores en local)
+        if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                for (let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    for (let name of names) caches.delete(name);
+                });
+            }
+        }
+
+        // Sistema de Pestañas
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('tab-' + tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        // Mostrar/Ocultar panel de refrigeración
+        function toggleRefrigeracion() {
+            const servicio = document.getElementById('tipo_servicio').value;
+            const panel = document.getElementById('panel-refrigeracion');
+            panel.style.display = (servicio === 'refrigerado') ? 'block' : 'none';
+        }
+
+        function guardarIncidencias() {
+            const incidenciasTexto = document.getElementById('input_incidencias').value;
+            const contenedorRes = document.getElementById('res-incidencias-texto');
+            if (incidenciasTexto.trim() !== "") {
+                contenedorRes.textContent = incidenciasTexto;
+            } else {
+                contenedorRes.textContent = "Sin incidencias reportadas.";
+            }
+
+            const aviso = document.getElementById('aviso-guardado');
+            aviso.style.display = 'block';
+            setTimeout(() => { aviso.style.display = 'none'; }, 3000);
+        }
+
+        const FACTORES_EMISION = {
+            electrico: 0,
+            hibrido: 80,
+            diesel: 130,
+            gasolina: 150
+        };
+
+        const CONSUMOS_BASE = {
+            electrico: { unidad: 'kWh', valor: 18 },
+            hibrido: { unidad: 'L', valor: 5.5 },
+            diesel: { unidad: 'L', valor: 7.5 },
+            gasolina: { unidad: 'L', valor: 8.5 }
+        };
+
+        let destinos = [];
+        let chartEficienciaInstance = null;
+        let chartDesviacionInstance = null;
+
+        document.getElementById('form-destino').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const nombre = document.getElementById('nombre').value;
+            const x = parseFloat(document.getElementById('coord_x').value);
+            const y = parseFloat(document.getElementById('coord_y').value);
+
+            destinos.push({ nombre, x, y });
+            actualizarTabla();
+            document.getElementById('form-destino').reset();
+        });
+
+        function actualizarTabla() {
+            const tbody = document.querySelector('#tabla-destinos tbody');
+            tbody.innerHTML = '';
+            if (destinos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="color:var(--text-muted);">Sin destinos añadidos</td></tr>';
+                return;
+            }
+            destinos.forEach(d => {
+                const fila = document.createElement('tr');
+                fila.innerHTML = `<td>${d.nombre}</td><td>${d.x}</td><td>${d.y}</td>`;
+                tbody.appendChild(fila);
+            });
+        }
+
+        document.getElementById('btn-calcular').addEventListener('click', function() {
+            if (destinos.length === 0) {
+                alert('Por favor, añade al menos un destino a la ruta.');
+                return;
+            }
+
+            const chofer = document.getElementById('input_conductor').value || 'Sin asignar';
+            const tractora = document.getElementById('input_tractora').value || 'N/D';
+            const remolque = document.getElementById('input_remolque').value || 'N/D';
+
+            const origenNombre = document.getElementById('origen_nombre').value || 'Origen';
+            const origenX = parseFloat(document.getElementById('origen_x').value) || 0;
+            const origenY = parseFloat(document.getElementById('origen_y').value) || 0;
+
+            const tipoVehiculo = document.getElementById('tipo_vehiculo').value;
+            const tipoServicio = document.getElementById('tipo_servicio').value;
+            let factorEmision = FACTORES_EMISION[tipoVehiculo];
+
+            if (tipoServicio === 'refrigerado') {
+                factorEmision *= 1.25;
+            }
+
+            let noVisitados = [...destinos];
+            let actual = { nombre: origenNombre, x: origenX, y: origenY };
+            let rutaOrdenada = [];
+            let distanciaTotalDirecta = 0;
+
+            while (noVisitados.length > 0) {
+                let masCercanoIndex = 0;
+                let menorDistancia = Infinity;
+
+                noVisitados.forEach((dest, index) => {
+                    const dist = Math.sqrt(Math.pow(dest.x - actual.x, 2) + Math.pow(dest.y - actual.y, 2));
+                    if (dist < menorDistancia) {
+                        menorDistancia = dist;
+                        masCercanoIndex = index;
+                    }
+                });
+
+                distanciaTotalDirecta += menorDistancia;
+                actual = noVisitados.splice(masCercanoIndex, 1)[0];
+                rutaOrdenada.push(actual.nombre);
+            }
+
+            const distanciaVuelta = Math.sqrt(Math.pow(actual.x - origenX, 2) + Math.pow(actual.y - origenY, 2));
+            distanciaTotalDirecta += distanciaVuelta;
+
+            const distanciaTradicional = distanciaTotalDirecta * 1.30;
+            const emisionesOptimizadas = distanciaTotalDirecta * factorEmision;
+            const emisionesTradicionales = distanciaTradicional * factorEmision;
+            const ahorroGramos = emisionesTradicionales - emisionesOptimizadas;
+            const ahorroKg = ahorroGramos / 1000;
+            const porcentajeAhorro = emisionesTradicionales > 0 ? ((ahorroGramos / emisionesTradicionales) * 100).toFixed(1) : 0;
+
+            let datosConsumo = CONSUMOS_BASE[tipoVehiculo];
+            let factorFrigoConsumo = (tipoServicio === 'refrigerado') ? 1.20 : 1.0;
+            let consumoTotalRuta = (distanciaTotalDirecta / 100) * datosConsumo.valor * factorFrigoConsumo;
+
+            document.getElementById('res-chofer-info').innerHTML = `<b>${chofer}</b><br>Tractora: ${tractora} | Remolque: ${remolque}`;
+            document.getElementById('res-km').textContent = `${distanciaTotalDirecta.toFixed(2)} km`;
+            document.getElementById('res-secuencia').textContent = `${origenNombre} ➔ ${rutaOrdenada.join(' ➔ ')} ➔ ${origenNombre}`;
+            document.getElementById('res-consumo').textContent = `${consumoTotalRuta.toFixed(2)} ${datosConsumo.unidad}` + (tipoServicio === 'refrigerado' ? ' (Frío incl.)' : '');
+            document.getElementById('res-emisiones').textContent = `${(emisionesOptimizadas / 1000).toFixed(3)} kg CO₂`;
+            
+            let textoAhorro = `🌿 Ahorro ambiental total: ${ahorroKg.toFixed(3)} kg de CO₂ (${porcentajeAhorro}% menos frente a rutas convencionales).`;
+            document.getElementById('res-ahorro').textContent = textoAhorro;
+
+            let consejoVelocidad = "Velocidad crucero recomendada de <strong>75 - 85 km/h</strong> para optimizar la inercia y el par motor.";
+            if (tipoVehiculo === 'electrico') {
+                consejoVelocidad = "Vehículo eléctrico: una conducción fluida entre <strong>70 - 80 km/h</strong> maximiza la regeneración de batería.";
+            }
+            document.getElementById('res-velocidad').innerHTML = `<b>🍃 Conducción Eficiente:</b> ${consejoVelocidad}`;
+
+            // Mostrar el contenedor de resultados antes de renderizar los gráficos para que Chart.js tome bien las dimensiones
+            document.getElementById('resultado').style.display = 'block';
+
+            // Generar Gráficas de Auditoría con Chart.js
+            renderizarGraficas(distanciaTradicional, distanciaTotalDirecta, emisionesTradicionales / 1000, emisionesOptimizadas / 1000);
+        });
+
+        function renderizarGraficas(kmTrad, kmOpt, co2Trad, co2Opt) {
+            const ctx1 = document.getElementById('graficaEficiencia').getContext('2d');
+            if (chartEficienciaInstance) chartEficienciaInstance.destroy();
+
+            chartEficienciaInstance = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['Convencional', 'TRAZA//CO₂ (Óptima)'],
+                    datasets: [{
+                        label: 'Emisiones CO₂ (kg)',
+                        data: [co2Trad.toFixed(2), co2Opt.toFixed(2)],
+                        backgroundColor: ['#e76f51', '#2a9d8f'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: 'Auditoría de Emisiones (kg CO₂)' },
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            const ctx2 = document.getElementById('graficaDesviacion').getContext('2d');
+            if (chartDesviacionInstance) chartDesviacionInstance.destroy();
+
+            chartDesviacionInstance = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Km Ruta Óptima', 'Km Evitados (Ahorro)'],
+                    datasets: [{
+                        data: [kmOpt.toFixed(2), Math.max(0, (kmTrad - kmOpt)).toFixed(2)],
+                        backgroundColor: ['#132a22', '#10b981'],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: 'Desviación y Ahorro de Kilometraje' }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
